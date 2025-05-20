@@ -24,4 +24,4 @@ pip install -r requirements.txt
 ### To run the tool
 ```bash
 cd DragonGroveAI
-python3 DragonGrove.py```
+python3 DragonGrove.py
