@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+import os
+import hashlib
+import psutil
+import time
+import random
+import subprocess
+import datetime
+import threading
+import multiprocessing
+from scapy.all import sniff, IP, TCP  # For network traffic analysis
+from sklearn.ensemble import RandomForestClassifier  # Example ML model
+import pickle  # For loading pre-trained models
+
+# -----------------------------------------------------
+# Logging Utility
+# -----------------------------------------------------
+def log_action(action_type, details, log_file="system_logs.log"):
+    """
+    Logs an action with a timestamp to the specified log file.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(log_file, "a") as f:
+        f.write(f"[{timestamp}] {action_type}: {details}\n")
+
+
+# -----------------------------------------------------
+# File Hashing and Hash Log Management
+# -----------------------------------------------------
+def generate_file_hash(file_path):
+    """
+    Generates a SHA-256 hash for the given file using chunked reading.
+    """
+    hasher = hashlib.sha256()
+    try:
+        with open(file_path, 'rb') as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+    except (PermissionError, FileNotFoundError) as e:
+        log_action("Error", f"Skipping file {file_path} - {str(e)}")
+        return None
+    return hasher.hexdigest()
+
+def load_hash_log(log_file="hashes.log"):
+    """
+    Loads the file hash log into a dictionary.
+    """
+    hash_data = {}
+    try:
+        with open(log_file, "r") as f:
+            for line in f:
+                parts = line.strip().split(',', 1)
+                if len(parts) == 2:
+                    path, file_hash = parts
+                    hash_data[path] = file_hash
+    except FileNotFoundError:
+        log_action("Info", "Hash log not found. A new one will be created.")
+    return hash_data
+
+def save_hash_log(hash_data, log_file="hashes.log"):
+    """
+    Saves the hash data dictionary to the log file.
+    """
+    with open(log_file, "w") as f:
+        for path, file_hash in hash_data.items():
+            f.write(f"{path},{file_hash}\n")
+
+
+# -----------------------------------------------------
+# Behavior Analysis Module: Fileless Malware Detection
+# -----------------------------------------------------
+def monitor_memory_processes():
+    """
+    Scans running processes and flags those that lack an associated executable path.
+    """
+    suspicious_processes = []
+    for proc in psutil.process_iter(["pid", "name", "status", "exe"]):
+        try:
+            if proc.info["exe"] is None:
+                suspicious_processes.append(proc.info)
+                log_action("Alert", f"Potential fileless process detected: PID {proc.info['pid']}, Name {proc.info['name']}")
+        except psutil.AccessDenied:
+            continue
+    if suspicious_processes:
+        print("Potential fileless malware processes found:")
+        for proc in suspicious_processes:
+            print(proc)
+    else:
+        print("No significant fileless malware indicators were detected.")
+
+
+# -----------------------------------------------------
+# Side-Channel Attack Mitigation Module
+# -----------------------------------------------------
+def constant_time_compare(a: bytes, b: bytes) -> bool:
+    """
+    Performs a constant-time comparison of two byte strings to reduce timing attack risks.
+    """
+    if len(a) != len(b):
+        return False
+    result = 0
+    for x, y in zip(a, b):
+        result |= x ^ y
+    time.sleep(random.uniform(0.001, 0.003))
+    return result == 0
+
+
+# -----------------------------------------------------
+# Machine Learning for Malware Detection
+# -----------------------------------------------------
+def load_ml_model(model_path="ml_model.pkl"):
+    """
+    Loads a pre-trained machine learning model for malware detection.
+    """
+    try:
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+        log_action("Info", "ML model loaded successfully.")
+        return model
+    except FileNotFoundError:
+        log_action("Error", "ML model file not found.")
+        return None
+
+def classify_file(file_path, model):
+    """
+    Classifies a file as malicious or benign using the ML model.
+    """
+    features = extract_features(file_path)  # Implement feature extraction
+    prediction = model.predict([features])
+    return "Malicious" if prediction[0] == 1 else "Benign"
+
+def extract_features(file_path):
+    """
+    Extracts features from a file for ML classification.
+    """
+    # Example: File size, entropy, etc.
+    try:
+        file_size = os.path.getsize(file_path)
+        entropy = calculate_entropy(file_path)
+        return [file_size, entropy]
+    except Exception as e:
+        log_action("Error", f"Feature extraction failed for {file_path} - {str(e)}")
+        return [0, 0]
+
+def calculate_entropy(file_path):
+    """
+    Calculates the entropy of a file.
+    """
+    with open(file_path, "rb") as f:
+        data = f.read()
+    if not data:
+        return 0
+    from collections import Counter
+    counter = Counter(data)
+    length = len(data)
+    return -sum((count / length) * (count / length).bit_length() for count in counter.values())
+
+
+# -----------------------------------------------------
+# Network Traffic Analysis
+# -----------------------------------------------------
+
+
+# -----------------------------------------------------
+# System-Wide Deep Sweep
+# -----------------------------------------------------
+def deep_sweep_system(root="/", log_file="hashes.log", sonar_scan_function=None, ml_model=None):
+    """
+    Performs a deep sweep of the entire filesystem.
+    """
+    existing_hashes = load_hash_log(log_file)
+    updated_hashes = {}
+    excluded_dirs = ["/proc", "/dev", "/sys", "/run", "/tmp"]
+
+    for dirpath, dirs, files in os.walk(root, topdown=True, followlinks=False):
+        dirs[:] = [d for d in dirs if os.path.join(dirpath, d) not in excluded_dirs]
+        for file in files:
+            file_path = os.path.join(dirpath, file)
+            current_hash = generate_file_hash(file_path)
+            if current_hash is None:
+                continue
+            if current_hash != existing_hashes.get(file_path):
+                print(f"File changed or new: {file_path}")
+                log_action("Update", f"File updated or new: {file_path}")
+                if sonar_scan_function:
+                    sonar_scan_function(file_path)
+                if ml_model:
+                    classification = classify_file(file_path, ml_model)
+                    log_action("ML", f"File {file_path} classified as {classification}")
+            else:
+                print(f"Skipping unchanged file: {file_path}")
+            updated_hashes[file_path] = current_hash
+    save_hash_log(updated_hashes, log_file)
+    print("System-wide deep sweep complete; hash log updated.")
+    log_action("Info", "System-wide deep sweep complete.")
+
+
+# -----------------------------------------------------
+# Main Orchestration
+# -----------------------------------------------------
+def main():
+    print("Starting system-wide deep sweep...")
+    ml_model = load_ml_model()
+    deep_sweep_system(root="/", log_file="hashes.log", sonar_scan_function=sonar_scan, ml_model=ml_model)
+    
+    print("\nPerforming behavior analysis for fileless malware...")
+    monitor_memory_processes()
+    
+    print("\nStarting network traffic analysis...")
+    sniff(prn=analyze_network_traffic, count=100)  # Capture 100 packets for analysis
+
+
+if __name__ == "__main__":
+    main()
