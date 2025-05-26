@@ -16,7 +16,7 @@ This directory is **locked down with strict permissions (`chmod 700`)**, prevent
 ## 🚀 Installation & Setup
 To install DragonGroveAI:
 ```bash
-git clone https://github.com/yourrepo/DragonGroveAI.git
+git clone https://github.com/DragonGroveAI/DragonGroveAI.git
 cd DragonGroveAI
 pip install -r requirements.txt
 ```
