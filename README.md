@@ -10,7 +10,7 @@ This directory is **locked down with strict permissions (`chmod 700`)**, prevent
 - **VirusTotal Lookups** – Fetches threat intelligence on suspicious hashes.
 
 ### 🚫 Security Measures:
-✅ **No execution occurs—SentinelAI only scans malware statically.**  
+✅ **No execution occurs—DragonGroveAI only scans malware statically.**  
 ✅ **Read-only access is enforced (`chattr +i`) to prevent modifications.**  
 ✅ **Network isolation prevents malware samples from calling home.**  
 ## 🚀 Installation & Setup
