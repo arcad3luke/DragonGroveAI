@@ -3,7 +3,7 @@ DragonGroveAI **stores malware samples in**:
 **`/mnt/disk2/malware_samples`**
 This directory is **locked down with strict permissions (`chmod 700`)**, preventing accidental execution.
 
-### 🔍 How SentinelAI Analyzes Malware:
+### 🔍 How DragonGroveAI Analyzes Malware:
 - **YARA Rules** – Matches common malware signatures.
 - **SHA256 Hashing** – Cross-checks files against known threats.
 - **Entropy Analysis** – Flags obfuscated or packed executables.
