@@ -9,7 +9,7 @@ import pickle
 import sys
 
 # -----------------------------------------------------
-# SentinelAI Orchestrator
+# DragonGroveAI Orchestrator
 # -----------------------------------------------------
 def verify_malware_database(db_path="database/malware_samples.db"):
     """Check if the malware database exists and is accessible."""
